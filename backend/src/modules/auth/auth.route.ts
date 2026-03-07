@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { signup, login } from "./auth.controller";
+import { validateRequest } from "../../middleware/validateRequest";
+import { signupSchema, loginSchema } from "./auth.validation";
 
-const router = Router();
+const authRouter = Router();
 
-router.post("/signup", signup);
-router.post("/login", login);
+authRouter.post("/signup", validateRequest(signupSchema), signup);
+authRouter.post("/login", validateRequest(loginSchema), login);
 
-export default router;
+export default authRouter;

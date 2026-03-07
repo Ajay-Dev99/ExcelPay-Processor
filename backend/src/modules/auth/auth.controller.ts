@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { signupUser, loginUser } from "./auth.service";
-import { asyncHandler } from "../../utils/AsyncHandler";
-import ApiResponse from "../../utils/ApiResponse";
+import { asyncHandler } from "../../utils/asyncHandler";
+import ApiResponse from "../../utils/apiResponse";
 
 export const signup = asyncHandler(async (req: Request, res: Response) => {
 

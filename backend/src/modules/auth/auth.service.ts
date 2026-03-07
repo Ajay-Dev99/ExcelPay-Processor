@@ -2,11 +2,13 @@ import { prisma } from "../../config/prisma";
 import { comparePassword, hashPassword } from "../../utils/PasswordUtilites";
 import { generateToken } from "../../utils/jwt";
 import { signupSchema, loginSchema } from "./auth.validation";
-import { AppError } from "../../utils/AppError";
+import { AppError } from "../../utils/appError";
 
-export const signupUser = async (data: any) => {
+import { z } from "zod";
 
-    const validated = signupSchema.parse(data);
+export const signupUser = async (data: z.infer<typeof signupSchema>) => {
+
+    const validated = data;
 
     const existingUser = await prisma.user.findUnique({
         where: { email: validated.email },
@@ -25,12 +27,14 @@ export const signupUser = async (data: any) => {
         },
     });
 
-    return user;
+    const { passwordHash: _, ...userWithoutPassword } = user;
+
+    return userWithoutPassword;
 };
 
-export const loginUser = async (data: any) => {
+export const loginUser = async (data: z.infer<typeof loginSchema>) => {
 
-    const validated = loginSchema.parse(data);
+    const validated = data;
 
     const user = await prisma.user.findUnique({
         where: { email: validated.email },

@@ -5,6 +5,7 @@ import compression from "compression";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { errorHandler, notFound } from "./middleware/errorHandler";
+import routes from "./routes";
 
 
 
@@ -35,6 +36,8 @@ app.get('/health', (req: Request, res: Response) => {
     environment: process.env.NODE_ENV
   });
 });
+
+app.use("/api/v1", routes);
 
 app.use(notFound);
 
