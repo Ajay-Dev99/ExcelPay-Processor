@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma";
+import { uploadQueue } from "../../queue/upload.queue";
 
 export const createUpload = async (
   fileName: string,
@@ -13,6 +14,11 @@ export const createUpload = async (
       status: "processing",
       userId,
     },
+  });
+
+  await uploadQueue.add("process-excel", {
+    uploadId: upload.id,
+    filePath: filePath,
   });
 
   return upload;
