@@ -4,12 +4,16 @@ import ExcelJS from "exceljs";
 import path from "path";
 import fs from "fs";
 import { prisma } from "../config/prisma";
+import { getIO } from "../config/socket";
 
 const BATCH_SIZE = 1000;
 
 export const uploadWorker = new Worker(
     "excel-processing",
     async (job) => {
+
+        const io = getIO(); // initialize socket inside worker
+
         try {
 
             const { uploadId, filePath } = job.data;
@@ -66,7 +70,7 @@ export const uploadWorker = new Worker(
 
             }
 
-            // Insert remaining rows
+            // insert remaining rows
             if (batch.length > 0) {
 
                 await prisma.employee.createMany({
@@ -81,11 +85,19 @@ export const uploadWorker = new Worker(
                 where: { id: uploadId },
                 data: {
                     status: "completed",
-                    processedRows
+                    processedRows,
+                    processedAt: new Date()
                 }
             });
 
             console.log("Upload completed:", uploadId);
+
+            // notify via websocket
+            io.emit("upload-completed", {
+                uploadId,
+                status: "completed",
+                processedAt: new Date()
+            });
 
             try {
 
@@ -107,7 +119,15 @@ export const uploadWorker = new Worker(
                 data: { status: "failed" }
             });
 
+            // websocket failure notification
+            io.emit("upload-failed", {
+                uploadId: job.data.uploadId,
+                status: "failed",
+                processedAt: new Date()
+            });
+
         }
+
     },
     {
         connection: redisConnection as any
