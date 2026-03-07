@@ -19,6 +19,7 @@ model User {
 model Upload {
   id            Int      @id @default(autoincrement())
   fileName      String
+  filePath      String
   status        String
   totalRows     Int?
   processedRows Int?
