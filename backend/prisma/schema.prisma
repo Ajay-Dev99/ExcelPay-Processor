@@ -1,0 +1,47 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  uploads Upload[]
+}
+
+model Upload {
+  id            Int      @id @default(autoincrement())
+  fileName      String
+  status        String
+  totalRows     Int?
+  processedRows Int?
+  uploadedAt    DateTime @default(now())
+  processedAt   DateTime?
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  employees Employee[]
+}
+
+model Employee {
+  id           Int      @id @default(autoincrement())
+  employeeId   String
+  employeeName String
+  basicPay     Float
+  variablePay  Float
+  allowance    Float
+  bonus        Float
+  ctc          Float
+  createdAt    DateTime @default(now())
+
+  uploadId Int
+  upload   Upload @relation(fields: [uploadId], references: [id])
+}
