@@ -21,12 +21,38 @@ export const uploadWorker = new Worker(
 
             console.log("Processing upload:", uploadId);
 
+            const upload = await prisma.upload.findUnique({
+                where: { id: uploadId },
+                include: { user: true }
+            });
+
+            if (!upload) {
+                throw new Error("Upload not found");
+            }
+
+            if (upload.status !== "processing") {
+                console.log("Skipping duplicate processing:", uploadId);
+                return;
+            }
+
             const fullPath = path.join(process.cwd(), filePath);
 
             const workbook = new ExcelJS.stream.xlsx.WorkbookReader(fullPath, {});
 
             let batch: any[] = [];
             let processedRows = 0;
+            let totalRows = 0;
+
+            const tempWorkbook = new ExcelJS.Workbook();
+            await tempWorkbook.xlsx.readFile(fullPath);
+
+            const sheet = tempWorkbook.worksheets[0];
+            totalRows = sheet.rowCount - 1;
+
+            await prisma.upload.update({
+                where: { id: uploadId },
+                data: { totalRows }
+            });
 
             for await (const worksheet of workbook) {
 
@@ -37,10 +63,10 @@ export const uploadWorker = new Worker(
                     const employeeId = String(row.getCell(1).value || "");
                     const employeeName = String(row.getCell(2).value || "");
 
-                    const basicPay = Number(row.getCell(4).value || 0);
-                    const variablePay = Number(row.getCell(5).value || 0);
-                    const allowance = Number(row.getCell(6).value || 0);
-                    const bonus = Number(row.getCell(7).value || 0);
+                    const basicPay = Number(row.getCell(3).value || 0);
+                    const variablePay = Number(row.getCell(4).value || 0);
+                    const allowance = Number(row.getCell(5).value || 0);
+                    const bonus = Number(row.getCell(6).value || 0);
 
                     const ctc = basicPay + variablePay + allowance + bonus;
 
@@ -62,18 +88,24 @@ export const uploadWorker = new Worker(
                         });
 
                         processedRows += batch.length;
-
                         batch = [];
 
-                        console.log("Processed rows:", processedRows);
+                        const progress = Math.floor((processedRows / totalRows) * 100);
 
+                        io.emit("upload-progress", {
+                            uploadId,
+                            processedRows,
+                            totalRows,
+                            progress
+                        });
+
+                        console.log("Processed rows:", processedRows);
                     }
 
                 }
 
             }
 
-          
             if (batch.length > 0) {
 
                 await prisma.employee.createMany({
@@ -97,24 +129,13 @@ export const uploadWorker = new Worker(
 
             console.log("Upload completed:", uploadId);
 
-        
-            const upload = await prisma.upload.findUnique({
-                where: { id: uploadId },
-                include: {
-                    user: true
-                }
-            });
-
-            // WebSocket notification
             io.emit("upload-completed", {
                 uploadId,
                 status: "completed",
                 processedAt
             });
 
-
-            // Email notification
-            if (upload?.user?.email) {
+            if (upload.user?.email) {
 
                 await sendProcessingEmail(
                     upload.user.email,
@@ -126,7 +147,6 @@ export const uploadWorker = new Worker(
 
             }
 
-            // Delete uploaded file
             try {
 
                 fs.unlinkSync(fullPath);

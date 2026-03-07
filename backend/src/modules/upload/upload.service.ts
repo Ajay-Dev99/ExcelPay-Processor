@@ -23,3 +23,30 @@ export const createUpload = async (
 
   return upload;
 };
+
+
+export const getUploadHistory = async (userId: number) => {
+
+  const uploads = await prisma.upload.findMany({
+    where: {
+      userId
+    },
+    orderBy: {
+      uploadedAt: "desc"
+    },
+    select: {
+      id: true,
+      fileName: true,
+      status: true,
+      totalRows: true,
+      processedRows: true,
+      uploadedAt: true,
+      processedAt: true,
+      userId: true,
+      filePath: true
+    }
+  });
+
+  return uploads;
+
+};
