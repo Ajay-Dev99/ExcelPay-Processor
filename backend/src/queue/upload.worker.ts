@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import { prisma } from "../config/prisma";
 import { getIO } from "../config/socket";
+import { sendProcessingEmail } from "../services/email.service";
 
 const BATCH_SIZE = 1000;
 
@@ -12,7 +13,7 @@ export const uploadWorker = new Worker(
     "excel-processing",
     async (job) => {
 
-        const io = getIO(); // initialize socket inside worker
+        const io = getIO();
 
         try {
 
@@ -61,16 +62,18 @@ export const uploadWorker = new Worker(
                         });
 
                         processedRows += batch.length;
+
                         batch = [];
 
                         console.log("Processed rows:", processedRows);
+
                     }
 
                 }
 
             }
 
-            // insert remaining rows
+          
             if (batch.length > 0) {
 
                 await prisma.employee.createMany({
@@ -81,27 +84,53 @@ export const uploadWorker = new Worker(
 
             }
 
+            const processedAt = new Date();
+
             await prisma.upload.update({
                 where: { id: uploadId },
                 data: {
                     status: "completed",
                     processedRows,
-                    processedAt: new Date()
+                    processedAt
                 }
             });
 
             console.log("Upload completed:", uploadId);
 
-            // notify via websocket
+        
+            const upload = await prisma.upload.findUnique({
+                where: { id: uploadId },
+                include: {
+                    user: true
+                }
+            });
+
+            // WebSocket notification
             io.emit("upload-completed", {
                 uploadId,
                 status: "completed",
-                processedAt: new Date()
+                processedAt
             });
 
+
+            // Email notification
+            if (upload?.user?.email) {
+
+                await sendProcessingEmail(
+                    upload.user.email,
+                    upload.fileName,
+                    "completed",
+                    processedRows,
+                    processedAt
+                );
+
+            }
+
+            // Delete uploaded file
             try {
 
                 fs.unlinkSync(fullPath);
+
                 console.log("File deleted:", fullPath);
 
             } catch (err) {
@@ -119,7 +148,8 @@ export const uploadWorker = new Worker(
                 data: { status: "failed" }
             });
 
-            // websocket failure notification
+            const io = getIO();
+
             io.emit("upload-failed", {
                 uploadId: job.data.uploadId,
                 status: "failed",
