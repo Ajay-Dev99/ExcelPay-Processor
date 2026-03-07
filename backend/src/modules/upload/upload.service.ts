@@ -19,7 +19,12 @@ export const createUpload = async (
   await uploadQueue.add("process-excel", {
     uploadId: upload.id,
     filePath: filePath,
-  });
+  },
+    {
+      jobId: String(upload.id)
+    }
+
+  );
 
   return upload;
 };
@@ -49,4 +54,41 @@ export const getUploadHistory = async (userId: number) => {
 
   return uploads;
 
+};
+
+
+
+export const getUploadStatus = async (uploadId: number, userId: number) => {
+
+  console.log(uploadId, userId)
+
+  const upload = await prisma.upload.findFirst({
+    where: {
+      id: uploadId,
+      userId
+    },
+    select: {
+      id: true,
+      fileName: true,
+      status: true,
+      processedRows: true,
+      totalRows: true,
+      uploadedAt: true,
+      processedAt: true
+    }
+  });
+
+  if (!upload) {
+    throw new Error("Upload not found");
+  }
+
+  const progress =
+    upload.totalRows && upload.totalRows > 0
+      ? Math.floor((upload.processedRows! / upload.totalRows) * 100)
+      : 0;
+
+  return {
+    ...upload,
+    progress
+  };
 };

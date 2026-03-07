@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { uploadExcel, uploadHistory } from "./upload.controller";
+import { uploadExcel, uploadHistory, uploadStatus } from "./upload.controller";
 import { uploadFile } from "./upload.middleware";
 import { authMiddleware } from "../../middleware/auth.middleware";
 
@@ -13,5 +13,5 @@ uploadRouter.post(
 );
 
 uploadRouter.get("/", authMiddleware, uploadHistory);
-
+uploadRouter.get("/:id/status", authMiddleware, uploadStatus);
 export default uploadRouter;
