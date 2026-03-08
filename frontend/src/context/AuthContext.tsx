@@ -73,7 +73,7 @@ export function AuthProvider({ children }: any) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loginPending: loginMutation.isPending, registerPending: registerMutation.isPending }}>
             {children}
         </AuthContext.Provider>
     );
