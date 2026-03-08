@@ -52,28 +52,40 @@ git clone https://github.com/Ajay-Dev99/ExcelPay-Processor.git
 cd ExcelPay-Processor
 ```
 
-### 2. Backend
+### 2. Start Redis
+**Windows** (using WSL or Redis installer):
+```bash
+redis-server
+```
+**Mac**:
+```bash
+brew services start redis
+```
+**Linux**:
+```bash
+sudo systemctl start redis
+```
+
+### 3. Backend
 ```bash
 cd backend
 npm install
 npx prisma migrate dev
-npx prisma db seed
 npm run dev
 ```
+> `prisma migrate dev` automatically runs the seed — no need to run it separately.
 
-### 3. Frontend
+### 4. Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### 4. Open in browser
+### 5. Open in browser
 ```
 http://localhost:5173
 ```
-
----
 
 ## Seed User (for evaluation)
 
