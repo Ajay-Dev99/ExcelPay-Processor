@@ -1,4 +1,4 @@
-export default function UploadProgress({ progress }: any) {
+export default function UploadProgress({ progress, processedRows }: any) {
 
     if (progress === null) return null;
 
@@ -7,20 +7,18 @@ export default function UploadProgress({ progress }: any) {
         <div className="bg-white p-6 rounded shadow mb-6">
 
             <h2 className="text-lg font-semibold mb-2">
-                Processing Progress
+                Processing...
             </h2>
 
-            <div className="w-full bg-gray-200 h-4 rounded">
-
-                <div
-                    className="bg-green-500 h-4 rounded transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                />
-
+            {/* Indeterminate animated bar */}
+            <div className="w-full bg-gray-200 h-4 rounded overflow-hidden">
+                <div className="bg-blue-500 h-4 rounded animate-pulse w-full" />
             </div>
 
-            <p className="mt-2 text-sm">
-                {progress}% completed
+            <p className="mt-2 text-sm text-gray-600">
+                {processedRows > 0
+                    ? `${processedRows.toLocaleString()} rows processed so far...`
+                    : "Starting..."}
             </p>
 
         </div>

@@ -30,6 +30,7 @@ export const uploadWorker = new Worker(
         const fullPath = path.join(process.cwd(), filePath);
 
         console.log("Processing upload:", uploadId);
+        let userId = 0;
 
         try {
 
@@ -38,7 +39,9 @@ export const uploadWorker = new Worker(
                 include: { user: true }
             });
 
+
             if (!upload) throw new Error("Upload not found");
+            userId = upload?.userId
 
             if (upload.status !== "processing") {
                 console.log("Skipping duplicate processing:", uploadId);
@@ -95,8 +98,9 @@ export const uploadWorker = new Worker(
 
                         // throttled socket emit — not every batch
                         if (processedRows % EMIT_EVERY === 0) {
-                            io.emit("upload-progress", { uploadId, processedRows });
+                            io.to(`user-${userId}`).emit("upload-progress", { uploadId, processedRows });
                             console.log("Processed rows:", processedRows);
+
                         }
 
                         // yield to event loop — prevents freezing other workers/requests
@@ -128,7 +132,7 @@ export const uploadWorker = new Worker(
 
             console.log("Upload completed:", uploadId);
 
-            io.emit("upload-completed", {
+            io.to(`user-${userId}`).emit("upload-completed", {
                 uploadId,
                 processedRows,
                 processedAt
@@ -153,7 +157,7 @@ export const uploadWorker = new Worker(
                 data: { status: "failed" }
             });
 
-            io.emit("upload-failed", { uploadId });
+            io.to(`user-${userId}`).emit("upload-failed", { uploadId });
 
         } finally {
 
