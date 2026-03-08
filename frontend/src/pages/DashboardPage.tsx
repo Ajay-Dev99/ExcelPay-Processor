@@ -86,7 +86,7 @@ export default function DashboardPage() {
             ]);
 
             // browser notification
-            if (Notification.permission === "granted") {
+            if (Notification.permission === "granted" && document.visibilityState === "hidden") {
                 new Notification("✅ Processing Complete!", {
                     body: `${fileName} — ${data.processedRows.toLocaleString()} rows processed`,
                     icon: "/vite.svg"
