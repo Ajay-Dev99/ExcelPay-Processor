@@ -47,8 +47,7 @@ export const getUploadHistory = async (userId: number) => {
       processedRows: true,
       uploadedAt: true,
       processedAt: true,
-      userId: true,
-      filePath: true
+      userId: true
     }
   });
 
