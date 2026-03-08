@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useUploadFile } from "../../hooks/api/useUploadFile";
+import Spinner from "../ui/Spinner";
 
 export default function UploadForm({ onUploaded }: any) {
 
@@ -42,13 +43,18 @@ export default function UploadForm({ onUploaded }: any) {
                 accept=".xlsx"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
                 className="mb-4"
+                disabled={uploadMutation.isPending}
             />
 
             <button
                 onClick={handleUpload}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
+                disabled={uploadMutation.isPending}
+                className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50 flex items-center gap-2"
             >
-                Upload
+                {uploadMutation.isPending
+                    ? <Spinner text="Uploading..." />
+                    : "Upload"
+                }
             </button>
 
         </div>
