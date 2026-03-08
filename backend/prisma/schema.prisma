@@ -17,19 +17,22 @@ model User {
 }
 
 model Upload {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   fileName      String
   filePath      String
   status        String
   totalRows     Int?
   processedRows Int?
-  uploadedAt    DateTime @default(now())
+  uploadedAt    DateTime  @default(now())
   processedAt   DateTime?
 
   userId Int
   user   User @relation(fields: [userId], references: [id])
 
   employees Employee[]
+
+  @@index([userId])  
+  @@index([status]) 
 }
 
 model Employee {
@@ -45,4 +48,6 @@ model Employee {
 
   uploadId Int
   upload   Upload @relation(fields: [uploadId], references: [id])
+
+  @@index([uploadId]) 
 }
