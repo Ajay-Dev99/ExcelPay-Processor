@@ -39,6 +39,7 @@ model Employee {
   id           Int      @id @default(autoincrement())
   employeeId   String
   employeeName String
+  department   String
   basicPay     Float
   variablePay  Float
   allowance    Float
@@ -49,5 +50,5 @@ model Employee {
   uploadId Int
   upload   Upload @relation(fields: [uploadId], references: [id])
 
-  @@index([uploadId]) 
+  @@index([uploadId])
 }

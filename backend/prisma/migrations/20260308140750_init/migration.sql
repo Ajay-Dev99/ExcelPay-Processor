@@ -13,6 +13,7 @@ CREATE TABLE `User` (
 CREATE TABLE `Upload` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `fileName` VARCHAR(191) NOT NULL,
+    `filePath` VARCHAR(191) NOT NULL,
     `status` VARCHAR(191) NOT NULL,
     `totalRows` INTEGER NULL,
     `processedRows` INTEGER NULL,
@@ -20,6 +21,8 @@ CREATE TABLE `Upload` (
     `processedAt` DATETIME(3) NULL,
     `userId` INTEGER NOT NULL,
 
+    INDEX `Upload_userId_idx`(`userId`),
+    INDEX `Upload_status_idx`(`status`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -28,6 +31,7 @@ CREATE TABLE `Employee` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `employeeId` VARCHAR(191) NOT NULL,
     `employeeName` VARCHAR(191) NOT NULL,
+    `department` VARCHAR(191) NOT NULL,
     `basicPay` DOUBLE NOT NULL,
     `variablePay` DOUBLE NOT NULL,
     `allowance` DOUBLE NOT NULL,
@@ -36,6 +40,7 @@ CREATE TABLE `Employee` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `uploadId` INTEGER NOT NULL,
 
+    INDEX `Employee_uploadId_idx`(`uploadId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

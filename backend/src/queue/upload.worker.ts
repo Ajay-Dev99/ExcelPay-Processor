@@ -66,6 +66,7 @@ export const uploadWorker = new Worker(
 
                     const employeeId = String(row.getCell(1).value ?? "").trim();
                     const employeeName = String(row.getCell(2).value ?? "").trim();
+                    const department = String(row.getCell(3).value ?? "").trim();
 
                     if (!employeeId || !employeeName) continue;
 
@@ -78,6 +79,7 @@ export const uploadWorker = new Worker(
                     batch.push({
                         employeeId,
                         employeeName,
+                        department,
                         basicPay,
                         variablePay,
                         allowance,
