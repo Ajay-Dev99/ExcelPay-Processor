@@ -7,67 +7,69 @@ import { prisma } from "../config/prisma";
 import { getIO } from "../config/socket";
 import { sendProcessingEmail } from "../services/email.service";
 
-const BATCH_SIZE = 1000;
+const BATCH_SIZE = 500;
+const EMIT_EVERY = 10000;
+
+function getCellNumber(cell: any): number {
+    if (!cell) return 0;
+    if (typeof cell === "number") return cell;
+    if (typeof cell === "string") return Number(cell) || 0;
+    if (typeof cell === "object") {
+        if ("result" in cell) return Number(cell.result) || 0; // formula cell
+        if ("richText" in cell) return 0;                      // rich text, not a number
+    }
+    return 0;
+}
 
 export const uploadWorker = new Worker(
     "excel-processing",
     async (job) => {
 
         const io = getIO();
+        const { uploadId, filePath } = job.data;
+        const fullPath = path.join(process.cwd(), filePath);
+
+        console.log("Processing upload:", uploadId);
 
         try {
-
-            const { uploadId, filePath } = job.data;
-
-            console.log("Processing upload:", uploadId);
 
             const upload = await prisma.upload.findUnique({
                 where: { id: uploadId },
                 include: { user: true }
             });
 
-            if (!upload) {
-                throw new Error("Upload not found");
-            }
+            if (!upload) throw new Error("Upload not found");
 
             if (upload.status !== "processing") {
                 console.log("Skipping duplicate processing:", uploadId);
                 return;
             }
 
-            const fullPath = path.join(process.cwd(), filePath);
-
-            const workbook = new ExcelJS.stream.xlsx.WorkbookReader(fullPath, {});
-
             let batch: any[] = [];
             let processedRows = 0;
-            let totalRows = 0;
 
-            const tempWorkbook = new ExcelJS.Workbook();
-            await tempWorkbook.xlsx.readFile(fullPath);
-
-            const sheet = tempWorkbook.worksheets[0];
-            totalRows = sheet.rowCount - 1;
-
-            await prisma.upload.update({
-                where: { id: uploadId },
-                data: { totalRows }
+            const workbook = new ExcelJS.stream.xlsx.WorkbookReader(fullPath, {
+                entries: "emit",
+                sharedStrings: "cache", // cache shared strings (text cells), not all data
+                hyperlinks: "ignore",
+                styles: "ignore",       // biggest memory saver — skips style parsing
+                worksheets: "emit",
             });
 
             for await (const worksheet of workbook) {
-
                 for await (const row of worksheet) {
 
-                    if (row.number === 1) continue;
+                    if (row.number === 1) continue; // skip header row
 
-                    const employeeId = String(row.getCell(1).value || "");
-                    const employeeName = String(row.getCell(2).value || "");
+                    const employeeId = String(row.getCell(1).value ?? "").trim();
+                    const employeeName = String(row.getCell(2).value ?? "").trim();
 
-                    const basicPay = Number(row.getCell(3).value || 0);
-                    const variablePay = Number(row.getCell(4).value || 0);
-                    const allowance = Number(row.getCell(5).value || 0);
-                    const bonus = Number(row.getCell(6).value || 0);
+                    if (!employeeId || !employeeName) continue; // skip empty rows
 
+                    const basicPay = getCellNumber(row.getCell(3).value);
+                    const variablePay = getCellNumber(row.getCell(4).value);
+                    const allowance = getCellNumber(row.getCell(5).value);
+                    const bonus = getCellNumber(row.getCell(6).value);
                     const ctc = basicPay + variablePay + allowance + bonus;
 
                     batch.push({
@@ -84,36 +86,33 @@ export const uploadWorker = new Worker(
                     if (batch.length >= BATCH_SIZE) {
 
                         await prisma.employee.createMany({
-                            data: batch
+                            data: batch,
+                            skipDuplicates: true
                         });
 
                         processedRows += batch.length;
-                        batch = [];
+                        batch = []; // release memory immediately
 
-                        const progress = Math.floor((processedRows / totalRows) * 100);
+                        // throttled socket emit — not every batch
+                        if (processedRows % EMIT_EVERY === 0) {
+                            io.emit("upload-progress", { uploadId, processedRows });
+                            console.log("Processed rows:", processedRows);
+                        }
 
-                        io.emit("upload-progress", {
-                            uploadId,
-                            processedRows,
-                            totalRows,
-                            progress
-                        });
-
-                        console.log("Processed rows:", processedRows);
+                        // yield to event loop — prevents freezing other workers/requests
+                        await new Promise(resolve => setImmediate(resolve));
                     }
-
                 }
-
             }
 
+            // flush remaining rows
             if (batch.length > 0) {
-
                 await prisma.employee.createMany({
-                    data: batch
+                    data: batch,
+                    skipDuplicates: true
                 });
-
                 processedRows += batch.length;
-
+                batch = [];
             }
 
             const processedAt = new Date();
@@ -131,12 +130,11 @@ export const uploadWorker = new Worker(
 
             io.emit("upload-completed", {
                 uploadId,
-                status: "completed",
+                processedRows,
                 processedAt
             });
 
             if (upload.user?.email) {
-
                 await sendProcessingEmail(
                     upload.user.email,
                     upload.fileName,
@@ -144,19 +142,6 @@ export const uploadWorker = new Worker(
                     processedRows,
                     processedAt
                 );
-
-            }
-
-            try {
-
-                fs.unlinkSync(fullPath);
-
-                console.log("File deleted:", fullPath);
-
-            } catch (err) {
-
-                console.error("File delete failed:", err);
-
             }
 
         } catch (error) {
@@ -164,22 +149,27 @@ export const uploadWorker = new Worker(
             console.error("Worker error:", error);
 
             await prisma.upload.update({
-                where: { id: job.data.uploadId },
+                where: { id: uploadId },
                 data: { status: "failed" }
             });
 
-            const io = getIO();
+            io.emit("upload-failed", { uploadId });
 
-            io.emit("upload-failed", {
-                uploadId: job.data.uploadId,
-                status: "failed",
-                processedAt: new Date()
-            });
+        } finally {
+
+            // always clean up — runs on both success and failure
+            try {
+                fs.unlinkSync(fullPath);
+                console.log("File deleted:", fullPath);
+            } catch (err) {
+                console.error("File delete failed:", err);
+            }
 
         }
 
     },
     {
-        connection: redisConnection as any
+        connection: redisConnection as any,
+        concurrency: 2
     }
 );
