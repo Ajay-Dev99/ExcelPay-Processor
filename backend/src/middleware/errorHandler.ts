@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/appError';
+import { env } from '../config/env';
 
 const handleJWTError = () => {
     return new AppError('Invalid token. Please log in again.', 401, 'INVALID_TOKEN');
@@ -47,7 +48,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     err.statusCode = err.statusCode || 500;
     err.status = err.status || 'error';
 
-    const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    const isDevelopment = env.NODE_ENV === 'development' || !env.NODE_ENV;
 
     if (isDevelopment) {
         sendErrorDev(err, res);

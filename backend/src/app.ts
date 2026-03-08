@@ -6,6 +6,7 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { errorHandler, notFound } from "./middleware/errorHandler";
 import routes from "./routes";
+import { env } from "./config/env";
 
 
 
@@ -33,7 +34,7 @@ app.get('/health', (req: Request, res: Response) => {
     success: true,
     message: 'Server is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: env.NODE_ENV
   });
 });
 
