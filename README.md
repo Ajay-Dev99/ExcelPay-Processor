@@ -47,7 +47,7 @@ Create a `.env` file inside the `frontend/` folder:
 VITE_API_URL=http://localhost:5000
 ```
 
-> A `.env.example` file is provided in both `backend/` and `frontend/` for reference.
+
 
 ---
 
@@ -124,7 +124,6 @@ http://localhost:5173
 | POST | /api/v1/auth/login | No | Login |
 | POST | /api/v1/upload | Yes | Upload Excel file |
 | GET | /api/v1/upload | Yes | Upload history |
-| GET | /api/v1/upload/:id/status | Yes | Upload status |
 | GET | /health | No | Health check |
 
 ---
@@ -170,7 +169,7 @@ http://localhost:5173
 
 ## Assumptions & Trade-offs
 
-- **Streaming over readFile** — ExcelJS streaming handles 2M+ rows without OOM crashes
+- **Streaming over readFile** — ExcelJS streaming handles 1M+ rows without Out Of Memory crashes
 - **Batch size 500** — Balances memory usage and DB insert performance
 - **Indeterminate progress bar** — totalRows not counted upfront to avoid memory overhead
 - **Per-user socket rooms** — Users only receive their own upload events
