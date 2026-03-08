@@ -82,6 +82,20 @@ npm install
 npm run dev
 ```
 
+## 🔔 Browser Notifications
+
+When you open the dashboard for the first time, the browser will ask:
+
+> **"Allow ExcelPay Processor to send notifications?"**
+
+Click **Allow** to receive real-time desktop notifications when:
+- ✅ File processing completes — shows filename + total rows processed
+- ❌ File processing fails — shows filename + error message
+
+> Notifications work even when the browser tab is minimized or in the background.
+> If you accidentally blocked notifications, re-enable them from your browser settings:
+> **Chrome**: Settings → Privacy & Security → Site Settings → Notifications
+
 ### 5. Open in browser
 ```
 http://localhost:5173
