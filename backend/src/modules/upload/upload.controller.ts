@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createUpload, getUploadHistory, getUploadStatus } from "./upload.service";
+import { createUpload, getUploadHistory } from "./upload.service";
 import { asyncHandler } from "../../utils/asyncHandler";
 import ApiResponse from "../../utils/apiResponse";
 import { AppError } from "../../utils/appError";
@@ -35,14 +35,3 @@ export const uploadHistory = asyncHandler(async (req: Request, res: Response) =>
 
 });
 
-
-export const uploadStatus = asyncHandler(async (req: Request, res: Response) => {
-
-    const uploadId = Number(req.params.id);
-    const userId = (req as any).userId;
-
-    const status = await getUploadStatus(uploadId, userId);
-
-    return ApiResponse.success(res, { status }, "Upload status fetched successfully");
-
-});
