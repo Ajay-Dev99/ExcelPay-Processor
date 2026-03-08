@@ -8,9 +8,6 @@ export const useUploads = () => {
         queryFn: async () => {
 
             const res = await apiClient.get("/upload");
-
-            console.log(res.data, "uploades")
-
             return res?.data?.data?.uploads;
         },
     });
