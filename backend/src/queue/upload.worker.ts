@@ -134,6 +134,7 @@ export const uploadWorker = new Worker(
 
             io.to(`user-${userId}`).emit("upload-completed", {
                 uploadId,
+                status: "completed",
                 processedRows,
                 processedAt
             });
