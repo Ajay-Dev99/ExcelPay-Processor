@@ -11,7 +11,15 @@ export function AuthProvider({ children }: any) {
     const loginMutation = useLogin();
     const registerMutation = useRegister();
 
-    const [user, setUser] = useState(null);
+    // ✅ initialise user from localStorage so refresh doesn't lose it
+    const [user, setUser] = useState(() => {
+        try {
+            const u = localStorage.getItem("user");
+            return u ? JSON.parse(u) : null;
+        } catch {
+            return null;
+        }
+    });
 
     const login = async (email: string, password: string) => {
         try {
@@ -24,6 +32,7 @@ export function AuthProvider({ children }: any) {
             if (!token) throw new Error("Login failed: no token received");
 
             localStorage.setItem("token", token);
+            localStorage.setItem("user", JSON.stringify(user)); // ✅ persist user
 
             setUser(user);
 
@@ -58,9 +67,8 @@ export function AuthProvider({ children }: any) {
     };
 
     const logout = () => {
-
         localStorage.removeItem("token");
-
+        localStorage.removeItem("user"); // ✅ clear user on logout
         setUser(null);
     };
 
