@@ -31,10 +31,11 @@ export const uploadWorker = new Worker(
 
         console.log("Processing upload:", uploadId);
         let userId = 0;
+        let upload: any = null;
 
         try {
 
-            const upload = await prisma.upload.findUnique({
+            upload = await prisma.upload.findUnique({
                 where: { id: uploadId },
                 include: { user: true }
             });
@@ -117,6 +118,10 @@ export const uploadWorker = new Worker(
                 batch = [];
             }
 
+            if (processedRows === 0) {
+                throw new Error("No valid employee rows found in the file");
+            }
+
             const processedAt = new Date();
 
             await prisma.upload.update({
@@ -155,6 +160,17 @@ export const uploadWorker = new Worker(
             });
 
             io.to(`user-${userId}`).emit("upload-failed", { uploadId });
+
+            // send failure email
+            if (upload?.user?.email) {
+                await sendProcessingEmail(
+                    upload.user.email,
+                    upload.fileName,
+                    "failed",
+                    0,
+                    new Date()
+                );
+            }
 
         } finally {
 

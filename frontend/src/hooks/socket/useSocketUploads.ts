@@ -126,12 +126,13 @@ export function useSocketUploads({ userId, uploads, onCompleted }: Options) {
                 { uploadId: data.uploadId, fileName, processedRows: 0 }
             ]);
 
-            if (Notification.permission === "granted") {
+            if (Notification.permission === "granted" && document.visibilityState === "hidden") {
                 new Notification("❌ Processing Failed", {
                     body: `${fileName} could not be processed. Please try again.`,
                     icon: "/vite.svg"
                 });
             }
+            onCompletedRef.current();
 
             scheduleDismiss(data.uploadId);
         };

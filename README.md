@@ -26,6 +26,7 @@ A full-stack application where authenticated users upload Excel files containing
 
 ## Environment Variables
 
+### Backend
 Create a `.env` file inside the `backend/` folder:
 ```env
 PORT=5000
@@ -40,7 +41,13 @@ REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 ```
 
-> For Gmail use an App Password — generate at: https://myaccount.google.com/apppasswords
+### Frontend
+Create a `.env` file inside the `frontend/` folder:
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+> A `.env.example` file is provided in both `backend/` and `frontend/` for reference.
 
 ---
 
@@ -128,10 +135,11 @@ http://localhost:5173
 |--------|-------|
 | A | Employee ID |
 | B | Employee Name |
-| C | Basic Pay |
-| D | Variable Pay |
-| E | Allowance |
-| F | Bonus |
+| C | Department |
+| D | Basic Pay |
+| E | Variable Pay |
+| F | Allowance |
+| G | Bonus |
 
 **CTC = Basic Pay + Variable Pay + Allowance + Bonus**
 
