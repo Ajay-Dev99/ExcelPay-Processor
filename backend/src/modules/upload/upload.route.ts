@@ -1,17 +1,14 @@
 import { Router } from "express";
-import { uploadExcel, uploadHistory } from "./upload.controller";
+import { previewUpload, uploadExcel, getUploads } from "./upload.controller";
 import { uploadFile } from "./upload.middleware";
 import { authMiddleware } from "../../middleware/auth.middleware";
 
-const uploadRouter = Router();
+const router = Router();
 
-uploadRouter.post(
-    "/",
-    authMiddleware,
-    uploadFile.single("file"),
-    uploadExcel
-);
+router.use(authMiddleware);
 
-uploadRouter.get("/", authMiddleware, uploadHistory);
+router.post("/preview", authMiddleware, uploadFile.single("file"), previewUpload);
+router.post("/", authMiddleware, uploadFile.single("file"), uploadExcel);
+router.get("/", authMiddleware, getUploads);
 
-export default uploadRouter;
+export default router;

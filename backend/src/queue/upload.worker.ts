@@ -26,10 +26,12 @@ export const uploadWorker = new Worker(
     async (job) => {
 
         const io = getIO();
-        const { uploadId, filePath } = job.data;
+        const { uploadId, filePath, mapping } = job.data; // ← get mapping
         const fullPath = path.join(process.cwd(), filePath);
 
         console.log("Processing upload:", uploadId);
+        console.log("Column mapping:", mapping);
+
         let userId = 0;
         let upload: any = null;
 
@@ -40,9 +42,8 @@ export const uploadWorker = new Worker(
                 include: { user: true }
             });
 
-
             if (!upload) throw new Error("Upload not found");
-            userId = upload?.userId
+            userId = upload.userId;
 
             if (upload.status !== "processing") {
                 console.log("Skipping duplicate processing:", uploadId);
@@ -51,6 +52,7 @@ export const uploadWorker = new Worker(
 
             let batch: any[] = [];
             let processedRows = 0;
+            let headerIndexMap: Record<string, number> = {};
 
             const workbook = new ExcelJS.stream.xlsx.WorkbookReader(fullPath, {
                 entries: "emit",
@@ -63,18 +65,30 @@ export const uploadWorker = new Worker(
             for await (const worksheet of workbook) {
                 for await (const row of worksheet) {
 
-                    if (row.number === 1) continue;
+    
+                    if (row.number === 1) {
+                        row.eachCell((cell, colNumber) => {
+                            const val = String(cell.value ?? "").trim();
+                            if (val) headerIndexMap[val] = colNumber;
+                        });
+                        continue;
+                    }
 
-                    const employeeId = String(row.getCell(1).value ?? "").trim();
-                    const employeeName = String(row.getCell(2).value ?? "").trim();
-                    const department = String(row.getCell(3).value ?? "").trim();
+                    console.log(headerIndexMap , "map in index")
+
+                    const getVal = (field: string) =>
+                        row.getCell(headerIndexMap[mapping[field]] ?? 0).value;
+
+                    const employeeId = String(getVal("employeeId") ?? "").trim();
+                    const employeeName = String(getVal("employeeName") ?? "").trim();
+                    const department = String(getVal("department") ?? "").trim();
 
                     if (!employeeId || !employeeName) continue;
 
-                    const basicPay = getCellNumber(row.getCell(4).value);
-                    const variablePay = getCellNumber(row.getCell(5).value);
-                    const allowance = getCellNumber(row.getCell(6).value);
-                    const bonus = getCellNumber(row.getCell(7).value);
+                    const basicPay = getCellNumber(getVal("basicPay"));
+                    const variablePay = getCellNumber(getVal("variablePay"));
+                    const allowance = getCellNumber(getVal("allowance"));
+                    const bonus = getCellNumber(getVal("bonus"));
                     const ctc = basicPay + variablePay + allowance + bonus;
 
                     batch.push({
@@ -90,25 +104,23 @@ export const uploadWorker = new Worker(
                     });
 
                     if (batch.length >= BATCH_SIZE) {
-
                         await prisma.employee.createMany({
                             data: batch,
                             skipDuplicates: true
                         });
-
                         processedRows += batch.length;
                         batch = [];
 
                         if (processedRows % EMIT_EVERY === 0) {
                             io.to(`user-${userId}`).emit("upload-progress", { uploadId, processedRows });
                             console.log("Processed rows:", processedRows);
-
                         }
 
                         await new Promise(resolve => setImmediate(resolve));
                     }
                 }
             }
+
             if (batch.length > 0) {
                 await prisma.employee.createMany({
                     data: batch,
@@ -126,11 +138,7 @@ export const uploadWorker = new Worker(
 
             await prisma.upload.update({
                 where: { id: uploadId },
-                data: {
-                    status: "completed",
-                    processedRows,
-                    processedAt
-                }
+                data: { status: "completed", processedRows, processedAt }
             });
 
             io.to(`user-${userId}`).emit("upload-completed", {
@@ -161,7 +169,6 @@ export const uploadWorker = new Worker(
 
             io.to(`user-${userId}`).emit("upload-failed", { uploadId });
 
-            // send failure email
             if (upload?.user?.email) {
                 await sendProcessingEmail(
                     upload.user.email,
@@ -173,16 +180,13 @@ export const uploadWorker = new Worker(
             }
 
         } finally {
-
             try {
                 fs.unlinkSync(fullPath);
                 console.log("File deleted:", fullPath);
             } catch (err) {
                 console.error("File delete failed:", err);
             }
-
         }
-
     },
     {
         connection: redisConnection as any,

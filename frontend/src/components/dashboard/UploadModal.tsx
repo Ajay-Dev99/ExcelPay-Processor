@@ -1,3 +1,4 @@
+import { useState } from "react";
 import UploadForm from "./UploadForm";
 
 interface Props {
@@ -13,7 +14,7 @@ export default function UploadModal({ open, onClose, onUploaded, onUploadStart }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative">
 
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-800">Upload Excel File</h2>

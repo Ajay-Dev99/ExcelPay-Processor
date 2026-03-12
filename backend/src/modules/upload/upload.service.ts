@@ -4,9 +4,9 @@ import { uploadQueue } from "../../queue/upload.queue";
 export const createUpload = async (
   fileName: string,
   filePath: string,
-  userId: number
+  userId: number,
+  mapping: Record<string, string>
 ) => {
-
   const upload = await prisma.upload.create({
     data: {
       fileName,
@@ -19,26 +19,18 @@ export const createUpload = async (
   await uploadQueue.add("process-excel", {
     uploadId: upload.id,
     filePath: filePath,
-  },
-    {
-      jobId: `upload - ${upload.id}`
-    }
-
-  );
+    mapping, 
+  }, {
+    jobId: `upload-${upload.id}`
+  });
 
   return upload;
 };
 
-
 export const getUploadHistory = async (userId: number) => {
-
   const uploads = await prisma.upload.findMany({
-    where: {
-      userId
-    },
-    orderBy: {
-      uploadedAt: "desc"
-    },
+    where: { userId },
+    orderBy: { uploadedAt: "desc" },
     select: {
       id: true,
       fileName: true,
@@ -50,7 +42,5 @@ export const getUploadHistory = async (userId: number) => {
       userId: true
     }
   });
-
   return uploads;
-
 };
